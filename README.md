@@ -6,7 +6,7 @@ Petal Reader reads text aloud and highlights each word in yellow as it's spoken.
 - **A VS Code add-on**: listen to Markdown files right inside VS Code's **preview**, with a little player in the bottom-right corner.
 - **Phone options**: turn notes into audio tracks, or install the app on your phone's home screen.
 
-**Try it online:** https://YOUR-USERNAME.github.io/petal-reader/ (works offline after the first visit)
+**Try it online :** https://YOUR-USERNAME.github.io/petal-reader/ (works offline after the first visit)
 
 ### Features
 - Yellow highlight on the word being spoken, plus a soft tint on the current sentence.
