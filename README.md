@@ -6,7 +6,7 @@ Petal Reader reads text aloud and highlights each word in yellow as it's spoken.
 - **A VS Code add-on**: listen to Markdown files right inside VS Code's **preview**, with a little player in the bottom-right corner.
 - **Phone options**: turn notes into audio tracks, or install the app on your phone's home screen.
 
-**Try it online :** https://YOUR-USERNAME.github.io/petal-reader/ (works offline after the first visit)
+**Try it online :** https://SophieTse18.github.io/petal-reader/ (works offline after the first visit)
 
 ### Features
 - Yellow highlight on the word being spoken, plus a soft tint on the current sentence.
@@ -27,7 +27,7 @@ Petal Reader reads text aloud and highlights each word in yellow as it's spoken.
 2. Unzip it anywhere (e.g. your Documents folder).
 3. Double-click **`PetalReader.html`**. It opens in your browser and works offline.
 
-Or download only `PetalReader.html` from the [latest release](https://github.com/YOUR-USERNAME/petal-reader/releases/latest). That single file is the whole app.
+Or download only `PetalReader.html` from the [latest release](https://github.com/SophieTse18/petal-reader/releases/latest). That single file is the whole app.
 
 ### Option 2: full setup on Windows (shortcuts + VS Code add-on)
 1. Download and unzip as above, into a folder you'll keep (e.g. `Documents\PetalReader`).
@@ -115,7 +115,7 @@ Petal Reader uses the voices your browser and computer provide, and puts the **m
 
 ### Install
 - **Windows:** `Setup Petal Reader.cmd` installs it for you.
-- **Any computer:** in VS Code open **Extensions** (`Ctrl+Shift+X`) → `…` menu at the top → **Install from VSIX…** → choose `vscode-extension/petal-reader-markdown-1.0.0.vsix` (also attached to each [release](https://github.com/YOUR-USERNAME/petal-reader/releases/latest)).
+- **Any computer:** in VS Code open **Extensions** (`Ctrl+Shift+X`) → `…` menu at the top → **Install from VSIX…** → choose `vscode-extension/petal-reader-markdown-1.0.0.vsix` (also attached to each [release](https://github.com/SophieTse18/petal-reader/releases/latest)).
 - If VS Code was already open, reload it: `Ctrl+Shift+P` → **Developer: Reload Window**.
 
 ### Use
@@ -141,7 +141,7 @@ It reads only what the preview shows, never the Markdown symbols. Code blocks ar
 ## 4. Listening on your phone
 
 ### Option A: install the app on your home screen
-1. On your phone, open **https://YOUR-USERNAME.github.io/petal-reader/**
+1. On your phone, open **https://SophieTse18.github.io/petal-reader/**
 2. **iPhone (Safari):** Share → **Add to Home Screen**. **Android (Chrome):** ⋮ menu → **Install app** (or *Add to Home screen*).
 3. It opens like a normal app and works offline. Paste text or use **Open file** (e.g. `.md` files from Files, iCloud or OneDrive), then press ▶ or double-tap a word.
 
