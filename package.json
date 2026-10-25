@@ -1,0 +1,9 @@
+{
+  "name": "petal-reader",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:js && npm run test:python",
+    "test:js": "node --test tests/*.test.js",
+    "test:python": "node tests/run-python-tests.js"
+  }
+}

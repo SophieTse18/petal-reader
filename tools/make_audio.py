@@ -161,6 +161,17 @@ def have_edge_tts():
         return False
 
 
+def resolve_engine(requested, edge_available=None, network_available=None):
+    """Resolve auto to the engine selected by the current command-line behavior."""
+    if requested != "auto":
+        return requested
+    if edge_available is None:
+        edge_available = have_edge_tts()
+    if network_available is None:
+        network_available = online()
+    return "edge" if edge_available and network_available else "windows"
+
+
 # ---------------------------------------------------------------- edge (online, natural voices)
 async def edge_save(text, voice, rate, path):
     import edge_tts
@@ -248,9 +259,7 @@ def main():
     a = ap.parse_args()
     a.rate = min(2.0, max(0.5, a.rate))
 
-    engine = a.engine
-    if engine == "auto":
-        engine = "edge" if have_edge_tts() and online() else "windows"
+    engine = resolve_engine(a.engine)
     if engine == "edge" and not have_edge_tts():
         sys.exit("The edge engine needs the edge-tts package. Install it with:  python -m pip install edge-tts")
 
