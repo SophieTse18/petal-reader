@@ -1,0 +1,96 @@
+{
+  "name": "petal-reader-markdown",
+  "displayName": "Petal Reader: Read Markdown Aloud",
+  "description": "Listen to the Markdown preview with word-by-word highlighting, a time bar with chapter marks, double-click to jump and adjustable speed. Works offline.",
+  "version": "1.0.0",
+  "publisher": "petal-reader",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "text to speech",
+    "tts",
+    "read aloud",
+    "markdown",
+    "accessibility"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "markdown.previewScripts": [
+      "./media/petal-preview.js"
+    ],
+    "markdown.previewStyles": [
+      "./media/petal-preview.css"
+    ],
+    "commands": [
+      {
+        "command": "petalReader.readAloud",
+        "title": "Read Aloud in Preview",
+        "category": "Petal Reader",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "petalReader.openInApp",
+        "title": "Open in Petal Reader (natural voices)",
+        "category": "Petal Reader",
+        "icon": "$(unmute)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "petalReader.readAloud",
+          "when": "editorLangId == markdown",
+          "group": "navigation@1"
+        },
+        {
+          "command": "petalReader.openInApp",
+          "when": "editorLangId == markdown",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "petalReader.openInApp",
+          "when": "editorLangId == markdown",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "petalReader.openInApp",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Petal Reader",
+      "properties": {
+        "petalReader.openWith": {
+          "type": "string",
+          "enum": [
+            "edge",
+            "defaultBrowser"
+          ],
+          "enumDescriptions": [
+            "Microsoft Edge in an app window. Edge has the most natural voices (they need internet).",
+            "Your default web browser."
+          ],
+          "default": "edge",
+          "description": "Where “Open in Petal Reader” opens the Markdown file."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "Petal Reader",
+  "short_name": "Petal Reader",
+  "description": "Read any text or Markdown aloud with word highlighting, chapters and double-click to jump.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#15121f",
+  "theme_color": "#15121f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
