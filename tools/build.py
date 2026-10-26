@@ -1,8 +1,8 @@
 """Build every generated Petal Reader artifact reproducibly.
 
-PetalReader.html is the one source of truth until the source-extraction commit.
-Run python tools/build.py to refresh committed artifacts, or add --check to
-verify them without changing the checkout.
+Files under src/ are the source of truth. Run python tools/build.py to refresh
+the committed one-file app, PWA, extension media, and VSIX, or add --check to
+verify every generated artifact without changing the checkout.
 """
 import argparse
 import hashlib
@@ -15,6 +15,11 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+SOURCE_MANIFEST = [
+    ("@@PETAL_APP_CSS@@", "src/styles/app.css"),
+    ("@@PETAL_CORE_JS@@", "src/core/reader.js"),
+    ("@@PETAL_APP_JS@@", "src/app/app.js"),
+]
 VSIX_FILES = [
     "package.json",
     "extension.js",
@@ -25,6 +30,28 @@ VSIX_FILES = [
     "media/app.html",
     "media/icon.png",
 ]
+
+
+def source_text(path):
+    text = path.read_text(encoding="utf-8")
+    if "\r" in text:
+        raise ValueError(f"source must use LF line endings: {path}")
+    return text
+
+
+def build_app(root):
+    template_path = root / "src" / "app" / "template.html"
+    page = source_text(template_path)
+    for placeholder, relative_path in SOURCE_MANIFEST:
+        count = page.count(placeholder)
+        if count != 1:
+            raise ValueError(
+                f"expected exactly one {placeholder} in {template_path}, found {count}"
+            )
+        page = page.replace(placeholder, source_text(root / relative_path), 1)
+    with (root / "PetalReader.html").open("w", encoding="utf-8", newline="\n") as output:
+        output.write(page)
+    return page
 
 
 def section(text, begin, end):
@@ -183,7 +210,7 @@ def build_phone(root, app_html):
 
 
 def build_all(root=ROOT):
-    app_html = (root / "PetalReader.html").read_text(encoding="utf-8")
+    app_html = build_app(root)
     build_extension(root, app_html)
     vsix = package_vsix(root)
     build_phone(root, app_html)
@@ -193,6 +220,7 @@ def build_all(root=ROOT):
 def generated_paths(root=ROOT):
     pkg = json.loads((root / "vscode-extension" / "package.json").read_text(encoding="utf-8"))
     return [
+        pathlib.Path("PetalReader.html"),
         pathlib.Path("vscode-extension/media/petal-preview.js"),
         pathlib.Path("vscode-extension/media/petal-preview.css"),
         pathlib.Path("vscode-extension/media/app.html"),
@@ -212,7 +240,7 @@ def generated_paths(root=ROOT):
 def check_generated(root=ROOT):
     with tempfile.TemporaryDirectory(prefix="petal-build-") as temp_dir:
         candidate = pathlib.Path(temp_dir)
-        shutil.copy2(root / "PetalReader.html", candidate / "PetalReader.html")
+        shutil.copytree(root / "src", candidate / "src")
         shutil.copytree(root / "assets", candidate / "assets")
         shutil.copytree(root / "vscode-extension", candidate / "vscode-extension")
         build_all(candidate)

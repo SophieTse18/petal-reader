@@ -13,7 +13,7 @@ SPEC.loader.exec_module(BUILD)
 
 
 def copy_build_inputs(destination):
-    shutil.copy2(ROOT / "PetalReader.html", destination / "PetalReader.html")
+    shutil.copytree(ROOT / "src", destination / "src")
     shutil.copytree(ROOT / "assets", destination / "assets")
     shutil.copytree(ROOT / "vscode-extension", destination / "vscode-extension")
 
