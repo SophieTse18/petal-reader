@@ -1,3 +1,4 @@
+node_modules/
 # Your own audio tracks (made with "Make Audio").  They can be large and personal.
 Audio/
 
@@ -16,3 +17,5 @@ venv/
 desktop.ini
 Thumbs.db
 .DS_Store
+test-results/
+playwright-report/
