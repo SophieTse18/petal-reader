@@ -28,15 +28,48 @@ class MarkdownCharacterizationTests(unittest.TestCase):
         self.assertEqual(MAKE_AUDIO.safe_name("...", "Audio"), "Audio")
 
 
-class EngineSelectionCharacterizationTests(unittest.TestCase):
-    def test_auto_uses_edge_only_when_package_and_network_are_available(self):
-        self.assertEqual(MAKE_AUDIO.resolve_engine("auto", True, True), "edge")
-        self.assertEqual(MAKE_AUDIO.resolve_engine("auto", True, False), "windows")
-        self.assertEqual(MAKE_AUDIO.resolve_engine("auto", False, True), "windows")
+class EngineSelectionTests(unittest.TestCase):
+    def test_auto_uses_edge_when_package_and_network_are_available(self):
+        self.assertEqual(
+            MAKE_AUDIO.resolve_engine("auto", platform="linux", edge_available=True, network_available=True),
+            "edge",
+        )
 
-    def test_explicit_engine_is_preserved(self):
-        self.assertEqual(MAKE_AUDIO.resolve_engine("edge", False, False), "edge")
-        self.assertEqual(MAKE_AUDIO.resolve_engine("windows", True, True), "windows")
+    def test_auto_uses_windows_only_on_windows_with_powershell(self):
+        self.assertEqual(
+            MAKE_AUDIO.resolve_engine(
+                "auto",
+                platform="win32",
+                edge_available=False,
+                network_available=False,
+                powershell_available=True,
+            ),
+            "windows",
+        )
+
+    def test_auto_rejects_platform_incompatible_fallbacks(self):
+        for platform in ("darwin", "linux"):
+            with self.subTest(platform=platform):
+                with self.assertRaisesRegex(MAKE_AUDIO.EngineUnavailable, "macOS/Linux"):
+                    MAKE_AUDIO.resolve_engine(
+                        "auto",
+                        platform=platform,
+                        edge_available=False,
+                        network_available=True,
+                        powershell_available=False,
+                    )
+
+    def test_explicit_windows_requires_windows_and_powershell(self):
+        with self.assertRaisesRegex(MAKE_AUDIO.EngineUnavailable, "only available on Windows"):
+            MAKE_AUDIO.resolve_engine("windows", platform="darwin", powershell_available=True)
+        with self.assertRaisesRegex(MAKE_AUDIO.EngineUnavailable, "requires Windows PowerShell"):
+            MAKE_AUDIO.resolve_engine("windows", platform="win32", powershell_available=False)
+
+    def test_explicit_edge_requires_package_and_network(self):
+        with self.assertRaisesRegex(MAKE_AUDIO.EngineUnavailable, "edge-tts package"):
+            MAKE_AUDIO.resolve_engine("edge", platform="linux", edge_available=False, network_available=True)
+        with self.assertRaisesRegex(MAKE_AUDIO.EngineUnavailable, "internet connection"):
+            MAKE_AUDIO.resolve_engine("edge", platform="linux", edge_available=True, network_available=False)
 
 
 if __name__ == "__main__":
