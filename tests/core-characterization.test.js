@@ -52,14 +52,14 @@ test('pause and stop cancel active speech with stable state transitions', () => 
   speechSynthesis.start();
   reader.pause();
   assert.equal(reader.state, 'paused');
-  assert.equal(speechSynthesis.cancelCount, 2);
+  assert.equal(speechSynthesis.cancelCount, 1);
 
   reader.play(1);
   assert.equal(reader.pos, 1);
   reader.stop();
   assert.equal(reader.state, 'stopped');
   assert.equal(reader.pos, 0);
-  assert.equal(speechSynthesis.cancelCount, 4);
+  assert.equal(speechSynthesis.cancelCount, 2);
 });
 
 test('permission failures pause playback and emit an actionable message', () => {

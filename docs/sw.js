@@ -1,5 +1,5 @@
 // Petal Reader offline cache. A new version is picked up automatically after an update.
-const CACHE = 'petal-reader-9fba2583f6';
+const CACHE = 'petal-reader-449ce45740';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

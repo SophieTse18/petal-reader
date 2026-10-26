@@ -17,7 +17,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 SOURCE_MANIFEST = [
     ("@@PETAL_APP_CSS@@", "src/styles/app.css"),
-    ("@@PETAL_CORE_JS@@", "src/core/reader.js"),
+    ("@@PETAL_CORE_JS@@", [
+        "src/providers/speech-provider.js",
+        "src/providers/browser-speech-provider.js",
+        "src/core/reader.js",
+    ]),
     ("@@PETAL_APP_JS@@", "src/app/app.js"),
 ]
 VSIX_FILES = [
@@ -42,13 +46,21 @@ def source_text(path):
 def build_app(root):
     template_path = root / "src" / "app" / "template.html"
     page = source_text(template_path)
-    for placeholder, relative_path in SOURCE_MANIFEST:
+    seen_paths = set()
+    for placeholder, relative_paths in SOURCE_MANIFEST:
         count = page.count(placeholder)
         if count != 1:
             raise ValueError(
                 f"expected exactly one {placeholder} in {template_path}, found {count}"
             )
-        page = page.replace(placeholder, source_text(root / relative_path), 1)
+        if isinstance(relative_paths, str):
+            relative_paths = [relative_paths]
+        duplicates = seen_paths.intersection(relative_paths)
+        if duplicates:
+            raise ValueError(f"duplicate source manifest entry: {sorted(duplicates)}")
+        seen_paths.update(relative_paths)
+        source = "\n".join(source_text(root / relative_path) for relative_path in relative_paths)
+        page = page.replace(placeholder, source, 1)
     with (root / "PetalReader.html").open("w", encoding="utf-8", newline="\n") as output:
         output.write(page)
     return page

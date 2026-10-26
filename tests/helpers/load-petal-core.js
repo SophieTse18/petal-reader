@@ -140,7 +140,7 @@ function loadPetalCore({ voices = [] } = {}) {
   window.window = window;
   window.document = document;
   vm.runInNewContext(extractCore(), context, { filename: 'PetalReader.core.js' });
-  return { PetalCore: window.PetalCore, speechSynthesis, storage };
+  return { PetalCore: window.PetalCore, PetalProviders: window.PetalProviders, speechSynthesis, storage, window };
 }
 
 function makeIndex(words) {

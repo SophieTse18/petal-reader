@@ -1,5 +1,4 @@
 
-/* ==PETAL-CORE-BEGIN== */
 /*!
  * Petal Reader core: voices, text indexing, speech, highlighting and the time bar.
  * Shared by Petal Reader (the app) and the VS Code Markdown preview add-on.
@@ -7,7 +6,8 @@
 (function (global) {
   'use strict';
 
-  const synth = ('speechSynthesis' in global) ? global.speechSynthesis : null;
+  const BrowserSpeechProvider = global.PetalProviders && global.PetalProviders.BrowserSpeechProvider;
+  const defaultSpeechProvider = BrowserSpeechProvider ? new BrowserSpeechProvider(global) : null;
   const now = () => performance.now();
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -132,11 +132,12 @@
   }
 
   class VoiceList {
-    constructor() {
+    constructor(provider) {
+      this.provider = provider;
       this.list = []; this._sig = ''; this._fns = [];
-      if (!synth) return;
+      if (!provider || !provider.supported) return;
       const load = () => this._load();
-      if (synth.addEventListener) synth.addEventListener('voiceschanged', load); else synth.onvoiceschanged = load;
+      provider.onVoicesChanged(load);
       load();
       let tries = 0;
       const iv = setInterval(() => { load(); if (++tries > 24) clearInterval(iv); }, 500);
@@ -144,8 +145,7 @@
     on(fn) { this._fns.push(fn); }
     _emit() { this._fns.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); }
     _load() {
-      let vs = [];
-      try { vs = synth.getVoices() || []; } catch (e) { /* ignore */ }
+      const vs = this.provider.listVoices();
       const sig = vs.map((v) => v.voiceURI + '|' + v.name + '|' + v.localService).join(',');
       if (sig === this._sig) return;
       this._sig = sig;
@@ -404,7 +404,8 @@
     constructor(o) {
       this.o = Object.assign({ root: null, scrollEl: null, indexOptions: null, bottomInset: 0, prefix: 'petal.' }, o || {});
       const pre = this.o.prefix;
-      this.voices = new VoiceList();
+      this.provider = this.o.provider || defaultSpeechProvider;
+      this.voices = new VoiceList(this.provider);
       this.rate = clamp(+store.get(pre + 'rate', 1) || 1, 0.5, 2);
       this.voiceURI = store.get(pre + 'voice', null);
       this.offlineOnly = !!store.get(pre + 'offlineOnly', false);
@@ -415,9 +416,9 @@
       this.pos = 0;
       this.index = null;
       this.dirty = true;
-      this.supported = !!synth;
+      this.supported = !!(this.provider && this.provider.supported);
       this.hasHighlight = !!(global.CSS && CSS.highlights && typeof global.Highlight === 'function');
-      this._tok = 0; this._t = {}; this._fns = {};
+      this._tok = 0; this._t = {}; this._fns = {}; this._session = null;
       this._wordAt = 0; this._override = null; this._retried = false; this._noStart = 0;
       this._userScrollAt = 0; this._progScrollUntil = 0; this._scrubbing = false; this._hlSeg = -1; this._scrubAt = 0;
       this.voices.on(() => this.emit('voices'));
@@ -564,7 +565,7 @@
 
     /* ----- transport ----- */
     play(from) {
-      if (!synth) { this.emit('toast', 'Sorry, this browser does not support speech.'); return; }
+      if (!this.supported) { this.emit('toast', 'Sorry, this browser does not support speech.'); return; }
       const W = this.ensureIndex().words;
       if (!W.length) { this.emit('toast', 'Nothing to read yet. Paste or type some text first.'); return; }
       let k = from == null ? this.pos : from;
@@ -613,15 +614,20 @@
     }
     endScrub() { this._scrubbing = false; }
     sample(text) {
-      if (!synth) return;
+      if (!this.supported) return;
       const info = this.voiceInfo;
       if (this.state === 'playing') this.pause();
       this._halt();
-      const u = new SpeechSynthesisUtterance(text || ('Hi, I\'m ' + (info ? info.short : 'your reader') + '. This is how I sound reading your text, with natural pauses, commas, and full stops.'));
-      if (info) { u.voice = info.voice; u.lang = info.lang; }
-      u.rate = this.rate;
-      this._utter = u;
-      synth.speak(u);
+      this._session = this.provider.createSession({
+        text: text || ('Hi, I\'m ' + (info ? info.short : 'your reader') + '. This is how I sound reading your text, with natural pauses, commas, and full stops.'),
+        voice: info && info.voice,
+        voiceId: info && info.uri,
+        language: info && info.lang,
+        rate: this.rate,
+        pitch: 1,
+        volume: 1
+      }, {});
+      this._session.start();
     }
 
     /* ----- speech engine ----- */
@@ -633,8 +639,11 @@
     _halt() {
       this._tok++;
       this._clearTimers();
-      if (synth) { try { synth.cancel(); } catch (e) { /* ignore */ } }
-      this._utter = null; this._wordAt = 0;
+      if (this._session) {
+        try { this._session.cancel(); } catch (e) { /* ignore */ }
+        try { this._session.dispose(); } catch (e) { /* ignore */ }
+      }
+      this._session = null; this._wordAt = 0;
     }
     _maxChars(info) {
       const c = info && this.caps[info.uri];
@@ -645,10 +654,9 @@
       return c && c.boundary ? 700 : 400;
     }
     _speakFrom(k) {
-      const busy = synth.speaking || synth.pending;
+      const busy = !!(this.provider && this.provider.busy);
       this._halt();
       const tok = this._tok;
-      try { if (synth.paused) synth.resume(); } catch (e) { /* ignore */ }
       this.pos = k; this._wordAt = 0;
       this._setWord(k);
       const go = () => { if (tok === this._tok && this.state === 'playing') this._speakChunk(k, tok); };
@@ -660,14 +668,22 @@
       if (k >= n) { this._finish(); return; }
       const info = this.voiceInfo, key = info ? info.uri : 'default';
       const ch = buildChunk(ix, k, this._maxChars(info), !!(info && info.online));
-      const u = new SpeechSynthesisUtterance(ch.text);
-      if (info) { u.voice = info.voice; u.lang = info.lang; }
-      u.rate = this.rate; u.pitch = 1; u.volume = 1;
+      const sessionOptions = {
+        text: ch.text,
+        voice: info && info.voice,
+        voiceId: info && info.uri,
+        language: info && info.lang,
+        rate: this.rate,
+        pitch: 1,
+        volume: 1
+      };
+      const events = {};
+      let session = null;
       let started = false, boundary = false, t0 = 0;
       const known = () => this.caps[key] && this.caps[key].boundary;
       const cleanup = () => { this._stopTicker(); clearInterval(this._t.keep); clearTimeout(this._t.watch); };
 
-      u.onstart = () => {
+      events.onStart = () => {
         if (tok !== this._tok) return;
         started = true; t0 = now(); this._retried = false; this._noStart = 0;
         clearTimeout(this._t.watch);
@@ -676,21 +692,21 @@
         if (!known()) this._startTicker(ch, tok, t0);
         if (info && info.online && /^google/i.test(info.name)) {
           // Chrome's Google voices stop after ~15 s unless nudged.
-          this._t.keep = setInterval(() => { if (tok === this._tok) { try { synth.pause(); synth.resume(); } catch (e) { /* ignore */ } } }, 9000);
+          this._t.keep = setInterval(() => { if (tok === this._tok && session) { try { session.pause(); session.resume(); } catch (e) { /* ignore */ } } }, 9000);
         }
       };
-      u.onboundary = (e) => {
+      events.onBoundary = (event) => {
         if (tok !== this._tok || ch.ix !== this.index) return;
-        if (e.name && e.name !== 'word') return;
+        if (event.kind && event.kind !== 'word') return;
         if (!boundary) {
           boundary = true; this._stopTicker();
           if (!known()) { this.caps[key] = { boundary: true }; store.set(this.o.prefix + 'caps', this.caps); }
         }
-        const j = clamp(upperBound(ch.offsets, e.charIndex) - 1, 0, ch.offsets.length - 1);
+        const j = clamp(upperBound(ch.offsets, event.charIndex) - 1, 0, ch.offsets.length - 1);
         const wi = ch.start + j;
         if (wi !== this.pos) { this._wordAt = now(); this._setWord(wi); }
       };
-      u.onend = () => {
+      events.onEnd = () => {
         if (tok !== this._tok) return;
         cleanup();
         if (started) {
@@ -702,16 +718,19 @@
         if (ch.ix === this.index && ch.end >= n && !this.dirty) { this._finish(); return; }
         this._speakChunk(ch.end, tok);
       };
-      u.onerror = (e) => {
+      events.onError = (event) => {
         if (tok !== this._tok) return;
-        const err = (e && e.error) || 'error';
+        const err = (event && event.code) || 'provider-error';
         if (err === 'interrupted' || err === 'canceled') return;
         cleanup();
         this._onError(err, info, tok);
       };
-      this._utter = u; // keep a reference: Chrome drops events of garbage-collected utterances
-      this._t.watch = setTimeout(() => { if (tok === this._tok && !started) this._onError('timeout', info, tok); }, info && info.online ? 9000 : 6000);
-      try { synth.speak(u); } catch (err) { this._onError('speak-failed', info, tok); }
+      try {
+        session = this.provider.createSession(sessionOptions, events);
+        this._session = session; // keep a reference: Chrome drops events of garbage-collected utterances
+        this._t.watch = setTimeout(() => { if (tok === this._tok && !started) this._onError('timeout', info, tok); }, info && info.online ? 9000 : 6000);
+        session.start();
+      } catch (err) { this._onError('speak-failed', info, tok); }
     }
     _startTicker(ch, tok, t0) {
       // Fallback for voices that do not report word positions: advance the highlight on estimated timing.
@@ -963,5 +982,6 @@
   }
 
   global.PetalCore = { Reader, Track, VoiceList, buildIndex, fillVoiceSelect, fmtTime, store, clamp, isEdge, ICON, injectIcons };
+  global.PetalCore.providers = global.PetalProviders;
 })(typeof window !== 'undefined' ? window : this);
 /* ==PETAL-CORE-END== */
