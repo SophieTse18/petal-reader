@@ -29,6 +29,7 @@ import asyncio
 import os
 import pathlib
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -161,6 +162,52 @@ def have_edge_tts():
         return False
 
 
+class EngineUnavailable(RuntimeError):
+    pass
+
+
+def resolve_engine(requested, platform=None, edge_available=None, network_available=None, powershell_available=None):
+    """Choose a supported engine without invoking platform-incompatible tooling."""
+    platform = platform or sys.platform
+    is_windows = platform.startswith("win")
+
+    if requested == "windows":
+        if not is_windows:
+            raise EngineUnavailable("The windows engine is only available on Windows.")
+        if powershell_available is None:
+            powershell_available = shutil.which("powershell") is not None
+        if not powershell_available:
+            raise EngineUnavailable("The windows engine requires Windows PowerShell.")
+        return "windows"
+
+    if edge_available is None:
+        edge_available = have_edge_tts()
+    if network_available is None:
+        network_available = online()
+
+    if requested == "edge":
+        if not edge_available:
+            raise EngineUnavailable(
+                "The edge engine needs the edge-tts package. Install it with: python -m pip install edge-tts"
+            )
+        if not network_available:
+            raise EngineUnavailable("The edge engine needs an internet connection.")
+        return "edge"
+
+    if edge_available and network_available:
+        return "edge"
+    if is_windows:
+        if powershell_available is None:
+            powershell_available = shutil.which("powershell") is not None
+        if powershell_available:
+            return "windows"
+        raise EngineUnavailable("No supported audio engine is available. Install edge-tts or enable Windows PowerShell.")
+    raise EngineUnavailable(
+        "No supported audio engine is available on macOS/Linux. "
+        "Install edge-tts and connect to the internet, then rerun with --engine edge."
+    )
+
+
 # ---------------------------------------------------------------- edge (online, natural voices)
 async def edge_save(text, voice, rate, path):
     import edge_tts
@@ -248,11 +295,10 @@ def main():
     a = ap.parse_args()
     a.rate = min(2.0, max(0.5, a.rate))
 
-    engine = a.engine
-    if engine == "auto":
-        engine = "edge" if have_edge_tts() and online() else "windows"
-    if engine == "edge" and not have_edge_tts():
-        sys.exit("The edge engine needs the edge-tts package. Install it with:  python -m pip install edge-tts")
+    try:
+        engine = resolve_engine(a.engine)
+    except EngineUnavailable as error:
+        sys.exit(str(error))
 
     if a.list_voices:
         print(f"Voices for the {engine} engine:")

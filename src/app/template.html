@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#15121f">
+<meta name="description" content="Petal Reader: a free, offline text-to-speech reader with live word highlighting, chapters and double-click to jump.">
+<title>Petal Reader</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffb1d6'/%3E%3Cstop offset='.5' stop-color='%23cbbcff'/%3E%3Cstop offset='1' stop-color='%23a8dcff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%231e1a33'/%3E%3Cg fill='url(%23g)'%3E%3Crect x='10' y='25' width='6' height='14' rx='3'/%3E%3Crect x='19.5' y='18' width='6' height='28' rx='3'/%3E%3Crect x='29' y='12' width='6' height='40' rx='3'/%3E%3Crect x='38.5' y='18' width='6' height='28' rx='3'/%3E%3Crect x='48' y='25' width='6' height='14' rx='3'/%3E%3C/g%3E%3C/svg%3E">
+<!--PWA-->
+<!--PETAL_EMBED-->
+<style>@@PETAL_APP_CSS@@</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand" aria-label="Petal Reader">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb1d6"/><stop offset=".5" stop-color="#cbbcff"/><stop offset="1" stop-color="#a8dcff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="#1e1a33"/><g fill="url(#bg1)"><rect x="10" y="25" width="6" height="14" rx="3"/><rect x="19.5" y="18" width="6" height="28" rx="3"/><rect x="29" y="12" width="6" height="40" rx="3"/><rect x="38.5" y="18" width="6" height="28" rx="3"/><rect x="48" y="25" width="6" height="14" rx="3"/></g></svg>
+      <span class="brand-name">Petal Reader</span>
+    </div>
+    <div class="doc-meta"><span class="doc-title" id="docTitle">Untitled</span><span class="save-state" id="saveState"></span></div>
+    <div class="top-actions">
+      <button class="chip accent" id="btnOpen" data-icon="folder" title="Open a .md, .txt or .html file (or drag one onto the page)"><span class="lbl">Open file</span></button>
+      <button class="chip" id="btnPaste" data-icon="paste" title="Paste from clipboard, keeping formatting"><span class="lbl">Paste</span></button>
+      <button class="chip" id="btnNew" data-icon="file" title="Start a new, empty page"><span class="lbl">New</span></button>
+      <button class="chip" id="btnPage" data-icon="moon" title="Switch between a dark page and a light paper page"><span class="lbl" id="pageLbl">Night page</span></button>
+      <button class="chip icon" id="btnSettings" data-icon="sliders" title="Voice, speed and chapters" aria-label="Voice, speed and chapters"></button>
+      <button class="chip icon" id="btnHelp" data-icon="help" title="Help and keyboard shortcuts" aria-label="Help"></button>
+    </div>
+    <input type="file" id="fileInput" accept=".md,.markdown,.mdown,.mkd,.txt,.text,.html,.htm" hidden>
+  </header>
+
+  <main class="layout">
+    <section class="editor-card" aria-label="Document">
+      <div class="embed-banner" id="embedBanner"></div>
+      <div class="format-bar" role="toolbar" aria-label="Formatting">
+        <button class="fmt" data-cmd="undo" data-icon="undo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
+        <button class="fmt" data-cmd="redo" data-icon="redo" title="Redo (Ctrl+Y)" aria-label="Redo"></button>
+        <span class="sep"></span>
+        <button class="fmt serif" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="fmt serif" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="fmt serif" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+        <button class="fmt serif" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+        <span class="sep"></span>
+        <button class="fmt" data-block="h1" title="Big heading (becomes a chapter)">H1</button>
+        <button class="fmt" data-block="h2" title="Heading (becomes a chapter)">H2</button>
+        <button class="fmt" data-block="h3" title="Sub-heading (becomes a sub-chapter)">H3</button>
+        <button class="fmt" data-block="p" title="Normal text">¶</button>
+        <button class="fmt" data-block="blockquote" data-icon="quote" title="Quote" aria-label="Quote"></button>
+        <span class="sep"></span>
+        <button class="fmt" data-cmd="insertUnorderedList" data-icon="list" title="Bullet list" aria-label="Bullet list"></button>
+        <button class="fmt" data-cmd="insertOrderedList" data-icon="olist" title="Numbered list" aria-label="Numbered list"></button>
+        <button class="fmt" data-cmd="removeFormat" data-icon="eraser" title="Clear formatting from the selected text" aria-label="Clear formatting"></button>
+        <span class="fmt-spacer"></span>
+        <button class="fmt" id="btnMd" data-icon="markdown" title="Turn Markdown text you pasted (# headings, **bold**, - lists) into formatted text"><span class="lbl">Format Markdown</span></button>
+      </div>
+      <div class="page-wrap night" id="pageWrap">
+        <div id="editor" class="page" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="false" data-placeholder="Paste or type anything here, then press Play…" aria-label="Text to read aloud"></div>
+      </div>
+      <div class="hint-row"><span><b>Double-click</b> a word to read from there</span><span><b>Ctrl+Enter</b> play / pause</span><span><b>Ctrl+[</b> / <b>Ctrl+]</b> back / forward 30 s</span></div>
+      <div class="drop-zone" id="dropZone">Drop your file to read it 🌸</div>
+    </section>
+
+    <aside class="side" id="side" aria-label="Voice and reading settings">
+      <div class="sheet-head"><span>Voice &amp; settings</span><button class="chip icon" id="btnCloseSheet" data-icon="close" aria-label="Close"></button></div>
+      <div class="card">
+        <h3>Voice</h3>
+        <select id="voiceSelect" aria-label="Voice"></select>
+        <div class="voice-meta"><span class="badge" id="voiceTier">…</span><span class="badge" id="voiceNet">…</span><button class="mini-btn" id="btnTest">Test voice</button></div>
+        <label class="toggle"><span>Offline voices only<small>Never use voices that need internet</small></span><input type="checkbox" id="optOffline"></label>
+        <label class="toggle"><span>Show other languages</span><input type="checkbox" id="optAllLang"></label>
+        <p class="tip" id="voiceTip"></p>
+      </div>
+      <div class="card">
+        <h3>Speed <span class="val" id="rateVal">1.00×</span></h3>
+        <input type="range" id="rate" min="0.5" max="2" step="0.05" value="1" aria-label="Playback speed">
+        <div class="range-ends"><span>0.5×</span><span>1×</span><span>1.5×</span><span>2×</span></div>
+        <div class="presets" id="presets">
+          <button class="preset" data-rate="0.75">0.75×</button><button class="preset" data-rate="1">1×</button><button class="preset" data-rate="1.25">1.25×</button><button class="preset" data-rate="1.5">1.5×</button><button class="preset" data-rate="2">2×</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="stats">
+          <div class="stat wide"><span>Total Estimated Time</span><strong id="statTotal">00:00</strong></div>
+          <div class="stat"><span>Time left</span><strong id="statLeft">00:00</strong></div>
+          <div class="stat"><span>Words</span><strong id="statWords">0</strong></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Chapters <span class="val" id="chapterCount"></span></h3>
+        <ol class="chapters" id="chapterList"></ol>
+        <p class="empty-note" id="chapterEmpty">Headings in your text appear here and as marks on the time bar.</p>
+      </div>
+      <div class="card">
+        <h3>Reading</h3>
+        <label class="toggle"><span>Follow along<small>Scroll to keep the spoken word in view</small></span><input type="checkbox" id="optFollow"></label>
+        <label class="toggle"><span>Read code blocks</span><input type="checkbox" id="optCode"></label>
+        <label class="toggle"><span>Read web addresses<small>Off: says “link” instead</small></span><input type="checkbox" id="optUrls"></label>
+        <label class="toggle"><span>Read emoji</span><input type="checkbox" id="optEmoji"></label>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="player" aria-label="Player">
+    <div class="player-top">
+      <span class="chapter-now" id="chapterNow">Ready when you are</span>
+      <span class="times"><span id="curTime">00:00</span><span class="sl">/</span><span id="durTime">00:00</span></span>
+    </div>
+    <div id="track"></div>
+    <div class="controls">
+      <div class="ctl-left"><button class="speed-pill" id="speedPill" title="Change speed (click to cycle)">1.00×</button><span class="voice-now" id="voiceNow"></span></div>
+      <div class="ctl-center">
+        <button class="ctl" id="btnBack" data-icon="back30" title="Rewind 30 seconds (Ctrl+[)" aria-label="Rewind 30 seconds"></button>
+        <button class="ctl play" id="btnPlay" title="Play (Ctrl+Enter)" aria-label="Play"></button>
+        <button class="ctl" id="btnStop" data-icon="stop" title="Stop and go back to the start" aria-label="Stop"></button>
+        <button class="ctl" id="btnFwd" data-icon="fwd30" title="Forward 30 seconds (Ctrl+])" aria-label="Forward 30 seconds"></button>
+      </div>
+      <div class="ctl-right"><span class="est">Total Estimated Time: <strong id="estTotal">00:00</strong></span></div>
+    </div>
+  </footer>
+</div>
+<div class="backdrop" id="backdrop"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="helpDlg">
+  <div class="dlg-head"><h2>How to use Petal Reader</h2><button class="chip icon" id="btnCloseHelp" data-icon="close" aria-label="Close"></button></div>
+  <div class="dlg-body">
+    <h4>Reading</h4>
+    <ul>
+      <li>Paste or type text (formatting, colours and code highlighting are kept), or <b>Open file</b> / drag in a <b>.md</b>, <b>.txt</b> or <b>.html</b> file.</li>
+      <li>Press <b>Play</b>. The spoken word glows yellow and the current sentence is softly tinted.</li>
+      <li><b>Double-click any word</b> to read from exactly there. Single clicks never move your place, so you can select and edit freely.</li>
+      <li>Drag the time bar, scroll your mouse wheel over it, or use the 30-second buttons. Marks on the bar are your headings. Hover a mark to see its name and time.</li>
+    </ul>
+    <h4>Keyboard</h4>
+    <div class="keys">
+      <span><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span><span>Play / pause (works while typing)</span>
+      <span><kbd>Space</kbd></span><span>Play / pause (when not typing)</span>
+      <span><kbd>Ctrl</kbd> + <kbd>[</kbd> &nbsp; <kbd>Ctrl</kbd> + <kbd>]</kbd></span><span>Back / forward 30 seconds</span>
+      <span><kbd>←</kbd> <kbd>→</kbd></span><span>On the time bar: back / forward 5 seconds</span>
+      <span><kbd>Esc</kbd></span><span>Pause</span>
+    </div>
+    <h4>Getting the most human voice</h4>
+    <ul>
+      <li><b>Microsoft Edge</b> gives free “Natural” voices (Natasha and William for Australian English, Ava, Andrew, Emma and Brian for US English, and more). They sound the most human but need internet.</li>
+      <li>Offline, the browser uses the voices installed on your computer. If the internet drops mid-read, Petal Reader switches to an offline voice automatically.</li>
+      <li>Times are estimates. They get more accurate as you listen, because Petal Reader learns how fast each voice really speaks.</li>
+    </ul>
+    <h4>Privacy</h4>
+    <ul><li>Your text stays in this browser and is saved automatically on this computer. Online voices send the text being read to Microsoft or Google to be spoken.</li></ul>
+  </div>
+</dialog>
+
+<script>@@PETAL_CORE_JS@@</script>
+
+<script>@@PETAL_APP_JS@@</script>
+</body>
+</html>

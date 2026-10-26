@@ -1,0 +1,14 @@
+{
+  "name": "petal-reader",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:js && npm run test:python",
+    "test:js": "node --test tests/*.test.js",
+    "test:python": "node tests/run-python-tests.js",
+    "test:browser": "playwright test",
+    "test:all": "npm test && npm run test:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}
